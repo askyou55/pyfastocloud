@@ -7,6 +7,6 @@ Dependencies
 ========
 `setuptools`
 
-Build
+Install
 ========
 `python3 setup.py install`
