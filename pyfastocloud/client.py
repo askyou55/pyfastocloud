@@ -238,6 +238,16 @@ class Client:
 
         self._stop_listen = False
 
+    def _recv(self, n):
+        # Helper function to recv n bytes or return None if EOF is hit
+        data = b''
+        while len(data) < n:
+            packet = self._socket.recv(n - len(data))
+            if not packet:
+                return None
+            data += packet
+        return data
+
     def _read_response_or_request(self, timeout=1) -> (Request, Response):
         if not self._socket:
             return None, None
@@ -246,7 +256,7 @@ class Client:
         if not ready[0]:
             return None, None
 
-        data_size_bytes = self._socket.recv(4)
+        data_size_bytes = self._recv(4)
         if not data_size_bytes:
             return None, None
 
@@ -255,7 +265,7 @@ class Client:
         if not data_size < Client.MAX_PACKET_SIZE:
             return None, None
 
-        data = self._socket.recv(data_size)
+        data = self._recv(data_size)
         if not data:
             return None, None
 
