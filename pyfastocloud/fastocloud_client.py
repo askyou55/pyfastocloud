@@ -1,8 +1,6 @@
 import socket
 import struct
 import json
-import threading
-import select
 
 from datetime import datetime
 from pyfastocloud.client_constants import Commands, ClientStatus
@@ -31,9 +29,7 @@ def generate_json_rpc_response_error(message: str, code: int, command_id: str) -
     return Response(command_id, None, {'code': code, 'message': message})
 
 
-class Client:
-    MAX_PACKET_SIZE = 4294967295
-
+class Fields:
     TIMESTAMP = 'timestamp'
     FEEDBACK_DIRECTORY = 'feedback_directory'
     TIMESHIFTS_DIRECTORY = 'timeshifts_directory'
@@ -52,13 +48,15 @@ class Client:
     CONFIG = 'config'
     DELAY = 'delay'
 
+
+class FastoCloudClient:
+    MAX_PACKET_SIZE = 4294967295
+
     def __init__(self, host: str, port: int, handler: IClientHandler):
         self.host = host
         self.port = port
         self._handler = handler
         self._socket = None
-        self._listen_thread = None
-        self._stop_listen = False
         self._request_queue = dict()
         self._state = ClientStatus.INIT
         self._gzip_compress = CompressorZlib(True)
@@ -88,9 +86,6 @@ class Client:
             return False
 
         self._socket = sock
-        thread = threading.Thread(target=self._listen_commands, daemon=True)
-        thread.start()
-        self._listen_thread = thread
         self._set_state(ClientStatus.CONNECTED)
         return True
 
@@ -103,77 +98,111 @@ class Client:
 
         self._reset()
 
+    def socket(self):
+        return self._socket
+
     def activate(self, command_id: int, license_key: str):
-        command_args = {Client.LICENSE_KEY: license_key}
+        command_args = {Fields.LICENSE_KEY: license_key}
         self._send_request(command_id, Commands.ACTIVATE_COMMAND, command_args)
 
     @is_active_decorator
     def ping_service(self, command_id: int):
-        self._send_request(command_id, Commands.SERVICE_PING_COMMAND, {Client.TIMESTAMP: make_utc_timestamp()})
+        self._send_request(command_id, Commands.SERVICE_PING_COMMAND, {Fields.TIMESTAMP: make_utc_timestamp()})
 
     @is_active_decorator
     def prepare_service(self, command_id: int, feedback_directory: str, timeshifts_directory: str, hls_directory: str,
                         playlists_directory: str, dvb_directory: str, capture_card_directory: str,
                         vods_in_directory: str, vods_directory: str, cods_directory: str):
         command_args = {
-            Client.FEEDBACK_DIRECTORY: feedback_directory,
-            Client.TIMESHIFTS_DIRECTORY: timeshifts_directory,
-            Client.HLS_DIRECTORY: hls_directory,
-            Client.PLAYLISTS_DIRECTORY: playlists_directory,
-            Client.DVB_DIRECTORY: dvb_directory,
-            Client.CAPTURE_CARD_DIRECTORY: capture_card_directory,
-            Client.VODS_IN_DIRECTORY: vods_in_directory,
-            Client.VODS_DIRECTORY: vods_directory,
-            Client.CODS_DIRECTORY: cods_directory
+            Fields.FEEDBACK_DIRECTORY: feedback_directory,
+            Fields.TIMESHIFTS_DIRECTORY: timeshifts_directory,
+            Fields.HLS_DIRECTORY: hls_directory,
+            Fields.PLAYLISTS_DIRECTORY: playlists_directory,
+            Fields.DVB_DIRECTORY: dvb_directory,
+            Fields.CAPTURE_CARD_DIRECTORY: capture_card_directory,
+            Fields.VODS_IN_DIRECTORY: vods_in_directory,
+            Fields.VODS_DIRECTORY: vods_directory,
+            Fields.CODS_DIRECTORY: cods_directory
         }
         self._send_request(command_id, Commands.PREPARE_SERVICE_COMMAND, command_args)
 
     @is_active_decorator
     def sync_service(self, command_id: int, streams: list, subscribers: list):
-        command_args = {Client.STREAMS: streams, Client.SUBSCRIBERS: subscribers}
+        command_args = {Fields.STREAMS: streams, Fields.SUBSCRIBERS: subscribers}
         self._send_request(command_id, Commands.SYNC_SERVICE_COMMAND, command_args)
 
     @is_active_decorator
     def stop_service(self, command_id: int, delay: int):
-        command_args = {Client.DELAY: delay}
+        command_args = {Fields.DELAY: delay}
         self._send_request(command_id, Commands.STOP_SERVICE_COMMAND, command_args)
 
     @is_active_decorator
     def get_log_service(self, command_id: int, path: str):
-        command_args = {Client.PATH: path}
+        command_args = {Fields.PATH: path}
         self._send_request(command_id, Commands.GET_LOG_SERVICE_COMMAND, command_args)
 
     @is_active_decorator
     def start_stream(self, command_id: int, config: dict):
-        command_args = {Client.CONFIG: config}
+        command_args = {Fields.CONFIG: config}
         self._send_request(command_id, Commands.START_STREAM_COMMAND, command_args)
 
     @is_active_decorator
     def stop_stream(self, command_id: int, stream_id: str):
-        command_args = {Client.STREAM_ID: stream_id}
+        command_args = {Fields.STREAM_ID: stream_id}
         self._send_request(command_id, Commands.STOP_STREAM_COMMAND, command_args)
 
     @is_active_decorator
     def restart_stream(self, command_id: int, stream_id: str):
-        command_args = {Client.STREAM_ID: stream_id}
+        command_args = {Fields.STREAM_ID: stream_id}
         self._send_request(command_id, Commands.RESTART_STREAM_COMMAND, command_args)
 
     @is_active_decorator
     def get_log_stream(self, command_id: int, stream_id: str, feedback_directory: str, path: str):
-        command_args = {Client.STREAM_ID: stream_id, Client.FEEDBACK_DIRECTORY: feedback_directory, Client.PATH: path}
+        command_args = {Fields.STREAM_ID: stream_id, Fields.FEEDBACK_DIRECTORY: feedback_directory, Fields.PATH: path}
         self._send_request(command_id, Commands.GET_LOG_STREAM_COMMAND, command_args)
 
     @is_active_decorator
     def get_pipeline_stream(self, command_id: int, stream_id: str, feedback_directory: str, path: str):
-        command_args = {Client.STREAM_ID: stream_id, Client.FEEDBACK_DIRECTORY: feedback_directory, Client.PATH: path}
+        command_args = {Fields.STREAM_ID: stream_id, Fields.FEEDBACK_DIRECTORY: feedback_directory, Fields.PATH: path}
         self._send_request(command_id, Commands.GET_PIPELINE_STREAM_COMMAND, command_args)
 
+    def read_command(self):
+        if not self.is_connected():
+            return None
+
+        data_size_bytes = self._recv(4)
+        if not data_size_bytes:
+            return None
+
+        data_size = struct.unpack('>I', data_size_bytes)[0]
+        if data_size > FastoCloudClient.MAX_PACKET_SIZE:
+            return None
+
+        return self._recv(data_size)
+
+    def process_commands(self, data: bytes):
+        if not data:
+            return
+
+        req, resp = self._decode_response_or_request(data)
+        if req:
+            if req.method == Commands.CLIENT_PING_COMMAND:
+                self._pong(req.id)
+
+            if self._handler:
+                self._handler.process_request(req)
+        elif resp:
+            saved_req = self._request_queue.pop(resp.id, None)
+            if saved_req and saved_req.method == Commands.ACTIVATE_COMMAND and resp.is_message():
+                self._set_state(ClientStatus.ACTIVE)
+            elif saved_req and saved_req.method == Commands.STOP_SERVICE_COMMAND and resp.is_message():
+                self._reset()
+
+            if self._handler:
+                self._handler.process_response(saved_req, resp)
+
     # private
-    def _reset(self, join=True):
-        self._stop_listen = True
-        if join:
-            self._listen_thread.join()
-        self._listen_thread = None
+    def _reset(self):
         self._socket.close()
         self._socket = None
         self._set_state(ClientStatus.INIT)
@@ -186,9 +215,9 @@ class Client:
     @is_active_decorator
     def _pong(self, command_id: str):
         ts = make_utc_timestamp()
-        self._send_response(command_id, {Client.TIMESTAMP: ts})
+        self._send_response(command_id, {Fields.TIMESTAMP: ts})
 
-    def _send_request(self, command_id: int, method: str, params):
+    def _send_request(self, command_id, method: str, params):
         if not self.is_connected():
             return
 
@@ -217,28 +246,7 @@ class Client:
         data_to_send_bytes = self._generate_data_to_send(data)
         self._socket.send(data_to_send_bytes)
 
-    def _listen_commands(self):
-        while not self._stop_listen:
-            req, resp = self._read_response_or_request()
-            if req:
-                if req.method == Commands.CLIENT_PING_COMMAND:
-                    self._pong(req.id)
-
-                if self._handler:
-                    self._handler.process_request(req)
-            elif resp:
-                saved_req = self._request_queue.pop(resp.id, None)
-                if saved_req and saved_req.method == Commands.ACTIVATE_COMMAND and resp.is_message():
-                    self._set_state(ClientStatus.ACTIVE)
-                elif saved_req and saved_req.method == Commands.STOP_SERVICE_COMMAND and resp.is_message():
-                    self._reset(False)
-
-                if self._handler:
-                    self._handler.process_response(saved_req, resp)
-
-        self._stop_listen = False
-
-    def _recv(self, n):
+    def _recv(self, n: int):
         # Helper function to recv n bytes or return None if EOF is hit
         data = b''
         while len(data) < n:
@@ -248,25 +256,6 @@ class Client:
             data += packet
         return data
 
-    def _read_response_or_request(self, timeout=1) -> (Request, Response):
-        if not self._socket:
-            return None, None
-
-        ready = select.select([self._socket], [], [], timeout)
-        if not ready[0]:
-            return None, None
-
-        data_size_bytes = self._recv(4)
-        if not data_size_bytes:
-            return None, None
-
-        data_size = struct.unpack('>I', data_size_bytes)[0]
-        if data_size > Client.MAX_PACKET_SIZE:
-            return None, None
-
-        data = self._recv(data_size)
-        if not data:
-            return None, None
-
+    def _decode_response_or_request(self, data: bytes) -> (Request, Response):
         decoded_data = self._gzip_compress.decompress(data)
         return parse_response_or_request(decoded_data.decode())
