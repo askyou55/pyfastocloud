@@ -260,8 +260,7 @@ class Client:
         if not data_size_bytes:
             return None, None
 
-        unp = struct.unpack("I", data_size_bytes)
-        data_size = socket.ntohl(unp[0])
+        data_size = struct.unpack('>I', data_size_bytes)[0]
         if not data_size < Client.MAX_PACKET_SIZE:
             return None, None
 
