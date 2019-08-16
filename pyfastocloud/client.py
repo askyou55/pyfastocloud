@@ -32,7 +32,7 @@ def generate_json_rpc_response_error(message: str, code: int, command_id: str) -
 
 
 class Client:
-    MAX_PACKET_SIZE = 4294967295
+    MAX_PACKET_SIZE = 64 * 1024 * 1024
 
     TIMESTAMP = 'timestamp'
     FEEDBACK_DIRECTORY = 'feedback_directory'
