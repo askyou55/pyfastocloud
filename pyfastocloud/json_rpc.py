@@ -69,7 +69,10 @@ class Response:
 
 # rpc functions
 def parse_response_or_request(data: str) -> (Request, Response):
-    resp_req = json.loads(data)
+    try:
+        resp_req = json.loads(data)
+    except ValueError as e:
+        return None, None
 
     if 'method' in resp_req:
         params = None
