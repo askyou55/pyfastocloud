@@ -39,12 +39,12 @@ class SubscriberClient(Client):
         self._send_response(command_id, params)
 
     @Client.is_active_decorator
-    def get_server_info_success(self, command_id, bandwidth_host: str):
+    def get_server_info_success(self, command_id: str, bandwidth_host: str):
         command_args = {'bandwidth_host': bandwidth_host}
         self._send_response(command_id, command_args)
 
     @Client.is_active_decorator
-    def get_runtime_channel_info_success(self, command_id, sid: str, watchers: int):
+    def get_runtime_channel_info_success(self, command_id: str, sid: str, watchers: int):
         command_args = {'id': sid, 'watchers': watchers}
         self._send_response(command_id, command_args)
 
@@ -57,17 +57,15 @@ class SubscriberClient(Client):
         command_args = {}
         self._send_request(command_id, Commands.SERVER_GET_CLIENT_INFO_COMMAND, command_args)
 
-    @Client.is_active_decorator
-    def pong(self, command_id: str):
-        ts = make_utc_timestamp()
-        self._send_response(command_id, {Fields.TIMESTAMP: ts})
-
     def process_commands(self, data: bytes):
         if not data:
             return
 
         req, resp = self._decode_response_or_request(data)
         if req:
+            if req.method == Commands.CLIENT_PING_COMMAND:
+                self.__pong(req.id)
+
             if self._handler:
                 self._handler.process_request(self, req)
         elif resp:
@@ -76,3 +74,7 @@ class SubscriberClient(Client):
                 self._handler.process_response(self, saved_req, resp)
 
     # private
+    @Client.is_active_decorator
+    def __pong(self, command_id: str):
+        ts = make_utc_timestamp()
+        self._send_response(command_id, {Fields.TIMESTAMP: ts})
