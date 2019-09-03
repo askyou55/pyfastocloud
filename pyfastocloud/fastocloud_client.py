@@ -41,7 +41,6 @@ class Fields:
     VODS_DIRECTORY = 'vods_directory'
     CODS_DIRECTORY = 'cods_directory'
     STREAMS = 'streams'
-    SUBSCRIBERS = 'subscribers'
     STREAM_ID = 'id'
     LICENSE_KEY = 'license_key'
     PATH = 'path'
@@ -127,8 +126,8 @@ class FastoCloudClient:
         self._send_request(command_id, Commands.PREPARE_SERVICE_COMMAND, command_args)
 
     @is_active_decorator
-    def sync_service(self, command_id: int, streams: list, subscribers: list):
-        command_args = {Fields.STREAMS: streams, Fields.SUBSCRIBERS: subscribers}
+    def sync_service(self, command_id: int, streams: list):
+        command_args = {Fields.STREAMS: streams}
         self._send_request(command_id, Commands.SYNC_SERVICE_COMMAND, command_args)
 
     @is_active_decorator
