@@ -11,6 +11,7 @@ class Commands:
 
     SERVER_PING_COMMAND = 'server_ping'
     SERVER_GET_CLIENT_INFO_COMMAND = 'get_client_info'
+    SERVER_SEND_MESSAGE_COMMAND = 'send_message'
 
 
 class Fields:
@@ -56,6 +57,11 @@ class SubscriberClient(Client):
     def get_client_info(self, command_id: int):
         command_args = {}
         self._send_request(command_id, Commands.SERVER_GET_CLIENT_INFO_COMMAND, command_args)
+
+    @Client.is_active_decorator
+    def send_message(self, command_id: int, message: str, ttl: int):
+        command_args = {'message': message, 'show_time': ttl}
+        self._send_request(command_id, Commands.SERVER_SEND_MESSAGE_COMMAND, command_args)
 
     def process_commands(self, data: bytes):
         if not data:
