@@ -59,8 +59,8 @@ class SubscriberClient(Client):
         self._send_request(command_id, Commands.SERVER_GET_CLIENT_INFO_COMMAND, command_args)
 
     @Client.is_active_decorator
-    def send_message(self, command_id: int, message: str, ttl: int):
-        command_args = {'message': message, 'show_time': ttl}
+    def send_message(self, command_id: int, message: str, message_type: int, ttl: int):
+        command_args = {'message': message, 'type': message_type, 'show_time': ttl}
         self._send_request(command_id, Commands.SERVER_SEND_MESSAGE_COMMAND, command_args)
 
     def process_commands(self, data: bytes):
