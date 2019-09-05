@@ -40,7 +40,7 @@ def create_tcp_socket():
 
 
 class Client(ABC):
-    MAX_PACKET_SIZE = 4294967295
+    MAX_PACKET_SIZE = 64 * 1024 * 1024
 
     def is_active(self):
         return self._state == ClientStatus.ACTIVE
