@@ -1,3 +1,4 @@
+import socket
 import struct
 import json
 
@@ -78,15 +79,13 @@ class Client(ABC):
         pass
 
     def create_tcp_socket(self):
-        socket_impl = self._socket_mod.Socket
-        return socket_impl.Socket(socket_impl.AF_INET, socket_impl.SOCK_STREAM)
+        return self._socket_mod.Socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def create_tcp_connection(self, host: str, port: int):
-        socket_impl = self._socket_mod.Socket
         try:
             sock = self.create_tcp_socket()
             sock.connect((host, port))
-        except socket_impl.error as exc:
+        except socket.error as exc:
             return None
 
         return sock
@@ -124,10 +123,9 @@ class Client(ABC):
         self._socket.send(data_to_send_bytes)
 
     def _generate_data_to_send(self, data: str) -> bytes:
-        socket_impl = self._socket_mod.Socket
         compressed = self._gzip_compress.compress(data.encode())
         compressed_len = len(compressed)
-        data_len = socket_impl.ntohl(compressed_len)
+        data_len = socket.ntohl(compressed_len)
         array = struct.pack("I", data_len)
         return array + compressed
 
