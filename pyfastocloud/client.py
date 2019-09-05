@@ -125,8 +125,7 @@ class Client(ABC):
     def _generate_data_to_send(self, data: str) -> bytes:
         compressed = self._gzip_compress.compress(data.encode())
         compressed_len = len(compressed)
-        data_len = socket.ntohl(compressed_len)
-        array = struct.pack("I", data_len)
+        array = struct.pack(">I", compressed_len)
         return array + compressed
 
     def _send_notification(self, method: str, params):
