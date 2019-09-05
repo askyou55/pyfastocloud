@@ -1,5 +1,5 @@
 from pyfastocloud.client_handler import IClientHandler, ClientStatus
-from pyfastocloud.client import Client, make_utc_timestamp, Socket
+from pyfastocloud.client import Client, make_utc_timestamp
 
 
 class Commands:
@@ -19,8 +19,8 @@ class Fields:
 
 
 class SubscriberClient(Client):
-    def __init__(self, sock: Socket, addr, handler: IClientHandler):
-        super(SubscriberClient, self).__init__(sock, ClientStatus.CONNECTED, handler)
+    def __init__(self, sock, addr, handler: IClientHandler, socket_mod):
+        super(SubscriberClient, self).__init__(sock, ClientStatus.CONNECTED, handler, socket_mod)
         self._addr = addr
 
     def address(self):

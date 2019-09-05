@@ -1,6 +1,6 @@
 from pyfastocloud.client_constants import ClientStatus
 from pyfastocloud.client_handler import IClientHandler
-from pyfastocloud.client import Client, make_utc_timestamp, SocketError, create_tcp_socket
+from pyfastocloud.client import Client, make_utc_timestamp
 
 
 class Commands:
@@ -45,8 +45,8 @@ class Fields:
 
 
 class FastoCloudClient(Client):
-    def __init__(self, host: str, port: int, handler: IClientHandler):
-        super(FastoCloudClient, self).__init__(None, ClientStatus.INIT, handler)
+    def __init__(self, host: str, port: int, handler: IClientHandler, socket_mod):
+        super(FastoCloudClient, self).__init__(None, ClientStatus.INIT, handler, socket_mod)
         self.host = host
         self.port = port
 
@@ -54,10 +54,8 @@ class FastoCloudClient(Client):
         if self.is_connected():
             return True
 
-        try:
-            sock = create_tcp_socket()
-            sock.connect((self.host, self.port))
-        except SocketError as exc:
+        sock = self.create_tcp_connection(self.host, self.port)
+        if not sock:
             return False
 
         self._socket = sock
