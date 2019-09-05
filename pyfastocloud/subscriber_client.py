@@ -26,6 +26,7 @@ class SubscriberClient(Client):
     def address(self):
         return self._addr
 
+    # responses
     def activate_success(self, command_id: str):
         self._send_response_ok(command_id)
         self._set_state(ClientStatus.ACTIVE)
@@ -50,6 +51,12 @@ class SubscriberClient(Client):
         self._send_response(command_id, command_args)
 
     @Client.is_active_decorator
+    def pong(self, command_id: str):
+        ts = make_utc_timestamp()
+        self._send_response(command_id, {Fields.TIMESTAMP: ts})
+
+    # requests
+    @Client.is_active_decorator
     def ping(self, command_id: int):
         self._send_request(command_id, Commands.SERVER_PING_COMMAND, {Fields.TIMESTAMP: make_utc_timestamp()})
 
@@ -69,18 +76,9 @@ class SubscriberClient(Client):
 
         req, resp = self._decode_response_or_request(data)
         if req:
-            if req.method == Commands.CLIENT_PING_COMMAND:
-                self.__pong(req.id)
-
             if self._handler:
                 self._handler.process_request(self, req)
         elif resp:
             saved_req = self._request_queue.pop(resp.id, None)
             if self._handler:
                 self._handler.process_response(self, saved_req, resp)
-
-    # private
-    @Client.is_active_decorator
-    def __pong(self, command_id: str):
-        ts = make_utc_timestamp()
-        self._send_response(command_id, {Fields.TIMESTAMP: ts})
