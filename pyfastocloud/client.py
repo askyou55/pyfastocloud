@@ -79,7 +79,7 @@ class Client(ABC):
         pass
 
     def create_tcp_socket(self):
-        return self._socket_mod.Socket(socket.AF_INET, socket.SOCK_STREAM)
+        return self._socket_mod.create_tcp_socket()
 
     def create_tcp_connection(self, host: str, port: int):
         try:
