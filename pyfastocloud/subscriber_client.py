@@ -31,44 +31,44 @@ class SubscriberClient(Client):
         self._send_response_ok(command_id)
         self._set_state(ClientStatus.ACTIVE)
 
-    def activate_fail(self, command_id: str, error: str):
-        self._send_response_fail(command_id, error)
+    def activate_fail(self, command_id: str, error: str) -> bool:
+        return self._send_response_fail(command_id, error)
 
-    def check_activate_fail(self, command_id: str, error: str):
-        self.activate_fail(command_id, error)
+    def check_activate_fail(self, command_id: str, error: str) -> bool:
+        return self.activate_fail(command_id, error)
 
-    def get_channels_success(self, command_id: str, params):
-        self._send_response(command_id, params)
+    def get_channels_success(self, command_id: str, params) -> bool:
+        return self._send_response(command_id, params)
 
     @Client.is_active_decorator
-    def get_server_info_success(self, command_id: str, bandwidth_host: str):
+    def get_server_info_success(self, command_id: str, bandwidth_host: str) -> bool:
         command_args = {'bandwidth_host': bandwidth_host}
-        self._send_response(command_id, command_args)
+        return self._send_response(command_id, command_args)
 
     @Client.is_active_decorator
-    def get_runtime_channel_info_success(self, command_id: str, sid: str, watchers: int):
+    def get_runtime_channel_info_success(self, command_id: str, sid: str, watchers: int) -> bool:
         command_args = {'id': sid, 'watchers': watchers}
-        self._send_response(command_id, command_args)
+        return self._send_response(command_id, command_args)
 
     @Client.is_active_decorator
-    def pong(self, command_id: str):
+    def pong(self, command_id: str) -> bool:
         ts = make_utc_timestamp()
-        self._send_response(command_id, {Fields.TIMESTAMP: ts})
+        return self._send_response(command_id, {Fields.TIMESTAMP: ts})
 
     # requests
     @Client.is_active_decorator
-    def ping(self, command_id: int):
-        self._send_request(command_id, Commands.SERVER_PING_COMMAND, {Fields.TIMESTAMP: make_utc_timestamp()})
+    def ping(self, command_id: int) -> bool:
+        return self._send_request(command_id, Commands.SERVER_PING_COMMAND, {Fields.TIMESTAMP: make_utc_timestamp()})
 
     @Client.is_active_decorator
-    def get_client_info(self, command_id: int):
+    def get_client_info(self, command_id: int) -> bool:
         command_args = {}
-        self._send_request(command_id, Commands.SERVER_GET_CLIENT_INFO_COMMAND, command_args)
+        return self._send_request(command_id, Commands.SERVER_GET_CLIENT_INFO_COMMAND, command_args)
 
     @Client.is_active_decorator
-    def send_message(self, command_id: int, message: str, message_type: int, ttl: int):
+    def send_message(self, command_id: int, message: str, message_type: int, ttl: int) -> bool:
         command_args = {'message': message, 'type': message_type, 'show_time': ttl}
-        self._send_request(command_id, Commands.SERVER_SEND_MESSAGE_COMMAND, command_args)
+        return self._send_request(command_id, Commands.SERVER_SEND_MESSAGE_COMMAND, command_args)
 
     def process_commands(self, data: bytes):
         if not data:

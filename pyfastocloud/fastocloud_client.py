@@ -64,12 +64,12 @@ class FastoCloudClient(Client):
 
     def activate(self, command_id: int, license_key: str):
         command_args = {Fields.LICENSE_KEY: license_key}
-        self._send_request(command_id, Commands.ACTIVATE_COMMAND, command_args)
+        return self._send_request(command_id, Commands.ACTIVATE_COMMAND, command_args)
 
     @Client.is_active_decorator
     def ping(self, command_id: int):
         command_args = {Fields.TIMESTAMP: make_utc_timestamp()}
-        self._send_request(command_id, Commands.SERVICE_PING_COMMAND, command_args)
+        return self._send_request(command_id, Commands.SERVICE_PING_COMMAND, command_args)
 
     @Client.is_active_decorator
     def prepare_service(self, command_id: int, feedback_directory: str, timeshifts_directory: str, hls_directory: str,
@@ -86,47 +86,47 @@ class FastoCloudClient(Client):
             Fields.VODS_DIRECTORY: vods_directory,
             Fields.CODS_DIRECTORY: cods_directory
         }
-        self._send_request(command_id, Commands.PREPARE_SERVICE_COMMAND, command_args)
+        return self._send_request(command_id, Commands.PREPARE_SERVICE_COMMAND, command_args)
 
     @Client.is_active_decorator
-    def sync_service(self, command_id: int, streams: list):
+    def sync_service(self, command_id: int, streams: list) -> bool:
         command_args = {Fields.STREAMS: streams}
-        self._send_request(command_id, Commands.SYNC_SERVICE_COMMAND, command_args)
+        return self._send_request(command_id, Commands.SYNC_SERVICE_COMMAND, command_args)
 
     @Client.is_active_decorator
-    def stop_service(self, command_id: int, delay: int):
+    def stop_service(self, command_id: int, delay: int) -> bool:
         command_args = {Fields.DELAY: delay}
-        self._send_request(command_id, Commands.STOP_SERVICE_COMMAND, command_args)
+        return self._send_request(command_id, Commands.STOP_SERVICE_COMMAND, command_args)
 
     @Client.is_active_decorator
-    def get_log_service(self, command_id: int, path: str):
+    def get_log_service(self, command_id: int, path: str) -> bool:
         command_args = {Fields.PATH: path}
-        self._send_request(command_id, Commands.GET_LOG_SERVICE_COMMAND, command_args)
+        return self._send_request(command_id, Commands.GET_LOG_SERVICE_COMMAND, command_args)
 
     @Client.is_active_decorator
-    def start_stream(self, command_id: int, config: dict):
+    def start_stream(self, command_id: int, config: dict) -> bool:
         command_args = {Fields.CONFIG: config}
-        self._send_request(command_id, Commands.START_STREAM_COMMAND, command_args)
+        return self._send_request(command_id, Commands.START_STREAM_COMMAND, command_args)
 
     @Client.is_active_decorator
-    def stop_stream(self, command_id: int, stream_id: str):
+    def stop_stream(self, command_id: int, stream_id: str) -> bool:
         command_args = {Fields.STREAM_ID: stream_id}
-        self._send_request(command_id, Commands.STOP_STREAM_COMMAND, command_args)
+        return self._send_request(command_id, Commands.STOP_STREAM_COMMAND, command_args)
 
     @Client.is_active_decorator
-    def restart_stream(self, command_id: int, stream_id: str):
+    def restart_stream(self, command_id: int, stream_id: str) -> bool:
         command_args = {Fields.STREAM_ID: stream_id}
-        self._send_request(command_id, Commands.RESTART_STREAM_COMMAND, command_args)
+        return self._send_request(command_id, Commands.RESTART_STREAM_COMMAND, command_args)
 
     @Client.is_active_decorator
-    def get_log_stream(self, command_id: int, stream_id: str, feedback_directory: str, path: str):
+    def get_log_stream(self, command_id: int, stream_id: str, feedback_directory: str, path: str) -> bool:
         command_args = {Fields.STREAM_ID: stream_id, Fields.FEEDBACK_DIRECTORY: feedback_directory, Fields.PATH: path}
-        self._send_request(command_id, Commands.GET_LOG_STREAM_COMMAND, command_args)
+        return self._send_request(command_id, Commands.GET_LOG_STREAM_COMMAND, command_args)
 
     @Client.is_active_decorator
-    def get_pipeline_stream(self, command_id: int, stream_id: str, feedback_directory: str, path: str):
+    def get_pipeline_stream(self, command_id: int, stream_id: str, feedback_directory: str, path: str) -> bool:
         command_args = {Fields.STREAM_ID: stream_id, Fields.FEEDBACK_DIRECTORY: feedback_directory, Fields.PATH: path}
-        self._send_request(command_id, Commands.GET_PIPELINE_STREAM_COMMAND, command_args)
+        return self._send_request(command_id, Commands.GET_PIPELINE_STREAM_COMMAND, command_args)
 
     def process_commands(self, data: bytes):
         if not data:

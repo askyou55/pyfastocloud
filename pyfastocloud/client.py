@@ -64,7 +64,11 @@ class Client(ABC):
         if not self.is_connected():
             return None
 
-        data_size_bytes = self._recv(4)
+        try:
+            data_size_bytes = self._recv(4)
+        except socket.error:
+            return None
+
         if not data_size_bytes:
             return None
 
@@ -72,7 +76,11 @@ class Client(ABC):
         if data_size > Client.MAX_PACKET_SIZE:
             return None
 
-        return self._recv(data_size)
+        try:
+            data = self._recv(data_size)
+        except socket.error:
+            return None
+        return data
 
     @abstractmethod
     def process_commands(self, data: bytes):
@@ -109,9 +117,9 @@ class Client(ABC):
         if self._handler:
             self._handler.on_client_state_changed(self, status)
 
-    def _send_request(self, command_id, method: str, params):
+    def _send_request(self, command_id, method: str, params) -> bool:
         if not self.is_connected():
-            return
+            return False
 
         cid = generate_seq_id(command_id)
         req = Request(cid, method, params)
@@ -120,7 +128,11 @@ class Client(ABC):
         data_to_send_bytes = self._generate_data_to_send(data)
         if not req.is_notification():
             self._request_queue[cid] = req
-        self._socket.send(data_to_send_bytes)
+        try:
+            self._socket.send(data_to_send_bytes)
+        except socket.error:
+            return False
+        return True
 
     def _generate_data_to_send(self, data: str) -> bytes:
         compressed = self._gzip_compress.compress(data.encode())
@@ -128,29 +140,40 @@ class Client(ABC):
         array = struct.pack(">I", compressed_len)
         return array + compressed
 
-    def _send_notification(self, method: str, params):
+    def _send_notification(self, method: str, params) -> bool:
         return self._send_request(None, method, params)
 
-    def _send_response(self, command_id: str, params):
+    def _send_response(self, command_id: str, params) -> bool:
         resp = generate_json_rpc_response_message(params, command_id)
         data = json.dumps(resp.to_dict())
         data_to_send_bytes = self._generate_data_to_send(data)
-        self._socket.send(data_to_send_bytes)
+        try:
+            self._socket.send(data_to_send_bytes)
+        except socket.error:
+            return False
+        return True
 
-    def _send_response_ok(self, command_id: str):
+    def _send_response_ok(self, command_id: str) -> bool:
         return self._send_response(command_id, JSONRPC_OK_RESULT)
 
-    def _send_response_fail(self, command_id: str, error: str):
+    def _send_response_fail(self, command_id: str, error: str) -> bool:
         resp = generate_json_rpc_response_error(error, JsonRPCErrorCode.JSON_RPC_SERVER_ERROR, command_id)
         data = json.dumps(resp.to_dict())
         data_to_send_bytes = self._generate_data_to_send(data)
-        self._socket.send(data_to_send_bytes)
+        try:
+            self._socket.send(data_to_send_bytes)
+        except socket.error:
+            return False
+        return True
 
     def _recv(self, n: int):
         # Helper function to recv n bytes or return None if EOF is hit
         data = b''
         while len(data) < n:
-            packet = self._socket.recv(n - len(data))
+            try:
+                packet = self._socket.recv(n - len(data))
+            except socket.error:
+                return None
             if not packet:
                 return None
             data += packet
