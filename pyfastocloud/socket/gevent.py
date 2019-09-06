@@ -4,7 +4,7 @@ from gevent import select
 
 Sleep = gevent.sleep
 Select = select.select
-Socket = gevent.socket.socket
+Socket = gevent.socket
 
 
 def create_tcp_socket():
