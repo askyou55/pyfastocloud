@@ -27,9 +27,13 @@ class SubscriberClient(Client):
         return self._addr
 
     # responses
-    def activate_success(self, command_id: str):
-        self._send_response_ok(command_id)
+    def activate_success(self, command_id: str) -> bool:
+        result = self._send_response_ok(command_id)
+        if not result:
+            return False
+        
         self._set_state(ClientStatus.ACTIVE)
+        return True
 
     def activate_fail(self, command_id: str, error: str) -> bool:
         return self._send_response_fail(command_id, error)
