@@ -1,4 +1,3 @@
-import socket
 import gevent
 from gevent import select
 from gevent import socket
@@ -9,4 +8,5 @@ Socket = socket.socket
 
 
 def create_tcp_socket():
+    import socket
     return Socket(socket.AF_INET, socket.SOCK_STREAM)
