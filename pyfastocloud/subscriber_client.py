@@ -28,8 +28,8 @@ class SubscriberClient(Client):
         return self._addr
 
     # responses
-    def activate_device_success(self, command_id: str) -> bool:
-        result = self._send_response_ok(command_id)
+    def activate_device_success(self, command_id: str, params) -> bool:
+        result = self._send_response(command_id, params)
         if not result:
             return False
 
@@ -42,8 +42,8 @@ class SubscriberClient(Client):
 
         return True
 
-    def login_success(self, command_id: str, params) -> bool:
-        result = self._send_response(command_id, params)
+    def login_success(self, command_id: str) -> bool:
+        result = self._send_response_ok(command_id)
         if not result:
             return False
 
