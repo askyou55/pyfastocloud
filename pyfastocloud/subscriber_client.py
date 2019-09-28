@@ -3,15 +3,16 @@ from pyfastocloud.client import Client, make_utc_timestamp
 
 
 class Commands:
-    CLIENT_PING_COMMAND = 'client_ping'
-    ACTIVATE_COMMAND = 'client_active'
-    GET_SERVER_INFO_COMMAND = 'get_server_info'
-    GET_CHANNELS = 'get_channels'
-    GET_RUNTIME_CHANNEL_INFO = 'get_runtime_channel_info'
+    CLIENT_ACTIVATE_DEVICE = 'client_activate_device'
+    CLIENT_LOGIN = 'client_login'
+    CLIENT_PING = 'client_ping'
+    CLIENT_GET_SERVER_INFO = 'get_server_info'
+    CLIENT_GET_CHANNELS = 'get_channels'
+    CLIENT_GET_RUNTIME_CHANNEL_INFO = 'get_runtime_channel_info'
 
-    SERVER_PING_COMMAND = 'server_ping'
-    SERVER_GET_CLIENT_INFO_COMMAND = 'get_client_info'
-    SERVER_SEND_MESSAGE_COMMAND = 'send_message'
+    SERVER_PING = 'server_ping'
+    SERVER_GET_CLIENT_INFO = 'get_client_info'
+    SERVER_SEND_MESSAGE = 'send_message'
 
 
 class Fields:
@@ -27,19 +28,33 @@ class SubscriberClient(Client):
         return self._addr
 
     # responses
-    def activate_success(self, command_id: str) -> bool:
+    def activate_device_success(self, command_id: str) -> bool:
         result = self._send_response_ok(command_id)
         if not result:
             return False
-        
+
+        return True
+
+    def activate_device_fail(self, command_id: str) -> bool:
+        result = self._send_response_ok(command_id)
+        if not result:
+            return False
+
+        return True
+
+    def login_success(self, command_id: str, params) -> bool:
+        result = self._send_response(command_id, params)
+        if not result:
+            return False
+
         self._set_state(ClientStatus.ACTIVE)
         return True
 
-    def activate_fail(self, command_id: str, error: str) -> bool:
+    def login_fail(self, command_id: str, error: str) -> bool:
         return self._send_response_fail(command_id, error)
 
-    def check_activate_fail(self, command_id: str, error: str) -> bool:
-        return self.activate_fail(command_id, error)
+    def check_login_fail(self, command_id: str, error: str) -> bool:
+        return self.login_fail(command_id, error)
 
     def get_channels_success(self, command_id: str, params) -> bool:
         return self._send_response(command_id, params)
@@ -62,17 +77,17 @@ class SubscriberClient(Client):
     # requests
     @Client.is_active_decorator
     def ping(self, command_id: int) -> bool:
-        return self._send_request(command_id, Commands.SERVER_PING_COMMAND, {Fields.TIMESTAMP: make_utc_timestamp()})
+        return self._send_request(command_id, Commands.SERVER_PING, {Fields.TIMESTAMP: make_utc_timestamp()})
 
     @Client.is_active_decorator
     def get_client_info(self, command_id: int) -> bool:
         command_args = {}
-        return self._send_request(command_id, Commands.SERVER_GET_CLIENT_INFO_COMMAND, command_args)
+        return self._send_request(command_id, Commands.SERVER_GET_CLIENT_INFO, command_args)
 
     @Client.is_active_decorator
     def send_message(self, command_id: int, message: str, message_type: int, ttl: int) -> bool:
         command_args = {'message': message, 'type': message_type, 'show_time': ttl}
-        return self._send_request(command_id, Commands.SERVER_SEND_MESSAGE_COMMAND, command_args)
+        return self._send_request(command_id, Commands.SERVER_SEND_MESSAGE, command_args)
 
     def process_commands(self, data: bytes):
         if not data:
