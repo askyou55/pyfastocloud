@@ -28,8 +28,9 @@ class SubscriberClient(Client):
         return self._addr
 
     # responses
-    def activate_device_success(self, command_id: str, params) -> bool:
-        result = self._send_response(command_id, params)
+    def activate_device_success(self, command_id: str, devices: list) -> bool:
+        command_args = {'devices': devices}
+        result = self._send_response(command_id, command_args)
         if not result:
             return False
 
@@ -56,8 +57,9 @@ class SubscriberClient(Client):
     def check_login_fail(self, command_id: str, error: str) -> bool:
         return self.login_fail(command_id, error)
 
-    def get_channels_success(self, command_id: str, params) -> bool:
-        return self._send_response(command_id, params)
+    def get_channels_success(self, command_id: str, channels: list) -> bool:
+        command_args = {'channels': channels}
+        return self._send_response(command_id, command_args)
 
     @Client.is_active_decorator
     def get_server_info_success(self, command_id: str, bandwidth_host: str) -> bool:
