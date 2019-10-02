@@ -36,12 +36,8 @@ class SubscriberClient(Client):
 
         return True
 
-    def activate_device_fail(self, command_id: str) -> bool:
-        result = self._send_response_ok(command_id)
-        if not result:
-            return False
-
-        return True
+    def activate_device_fail(self, command_id: str, error: str) -> bool:
+        return self._send_response_fail(command_id, error)
 
     def login_success(self, command_id: str) -> bool:
         result = self._send_response_ok(command_id)
