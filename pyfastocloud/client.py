@@ -11,8 +11,12 @@ from pyfastocloud.json_rpc import Request, Response, parse_response_or_request, 
 from pyfastocloud.compressor_zlib import CompressorZlib
 
 
-def make_utc_timestamp() -> int:
-    return int(datetime.now().timestamp() * 1000)
+def make_utc_timestamp_seconds() -> int:
+    return int(datetime.now().timestamp())
+
+
+def make_utc_timestamp_msec() -> int:
+    return make_utc_timestamp_seconds() * 1000
 
 
 def generate_seq_id(command_id):  # uint64_t

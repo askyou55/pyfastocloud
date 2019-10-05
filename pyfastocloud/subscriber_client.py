@@ -1,5 +1,5 @@
 from pyfastocloud.client_handler import IClientHandler, ClientStatus
-from pyfastocloud.client import Client, make_utc_timestamp
+from pyfastocloud.client import Client, make_utc_timestamp_msec
 
 
 class Commands:
@@ -69,13 +69,13 @@ class SubscriberClient(Client):
 
     @Client.is_active_decorator
     def pong(self, command_id: str) -> bool:
-        ts = make_utc_timestamp()
+        ts = make_utc_timestamp_msec()
         return self._send_response(command_id, {Fields.TIMESTAMP: ts})
 
     # requests
     @Client.is_active_decorator
     def ping(self, command_id: int) -> bool:
-        return self._send_request(command_id, Commands.SERVER_PING, {Fields.TIMESTAMP: make_utc_timestamp()})
+        return self._send_request(command_id, Commands.SERVER_PING, {Fields.TIMESTAMP: make_utc_timestamp_msec()})
 
     @Client.is_active_decorator
     def get_client_info(self, command_id: int) -> bool:
