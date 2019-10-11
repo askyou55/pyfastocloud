@@ -53,8 +53,8 @@ class SubscriberClient(Client):
     def check_login_fail(self, command_id: str, error: str) -> bool:
         return self.login_fail(command_id, error)
 
-    def get_channels_success(self, command_id: str, channels: list) -> bool:
-        command_args = {'channels': channels}
+    def get_channels_success(self, command_id: str, channels: list, vods: list) -> bool:
+        command_args = {'channels': channels, 'vods': vods}
         return self._send_response(command_id, command_args)
 
     @Client.is_active_decorator
